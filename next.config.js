@@ -7,7 +7,7 @@ const nextConfig = {
     optimizePackageImports: [
       "@supabase/ssr",
       "@supabase/supabase-js",
-      "@uidotdev/usehooks",
+      "usehooks-ts",
     ],
   },
   logging: {

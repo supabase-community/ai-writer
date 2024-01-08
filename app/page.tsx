@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic"
 import { cookies } from "next/headers"
-import { createClient } from "@/utils/supabase/server"
+import { createClient } from "@/supabase/server"
 
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -12,8 +12,6 @@ const EditorSkeleton = () => (
     </div>
   </div>
 )
-
-
 
 export default async function Index() {
   const Editor = dynamic(() => import("@/components/Editor"), {
@@ -28,7 +26,7 @@ export default async function Index() {
   } = await supabase.auth.getSession()
 
   return (
-    <div className="flex h-full w-full flex-1 items-center justify-center overflow-y-auto p-8">
+    <div className="flex h-full w-full flex-1 items-center justify-center overflow-y-auto md:p-8">
       <Editor session={session} />
     </div>
   )

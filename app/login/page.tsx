@@ -1,10 +1,25 @@
 import { cookies, headers } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { createClient } from "@/utils/supabase/server"
+import { createClient } from "@/supabase/server"
+import { ChevronLeft } from "lucide-react"
+import * as v from "valibot"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
+const LoginSchema = v.object({
+  email: v.string("Your email must be a string.", [
+    v.minLength(1, "Please enter your email."),
+    v.email("Please enter a valid email address."),
+  ]),
+  password: v.string("Your password must be a string.", [
+    v.minLength(1, "Please enter your password."),
+    v.minLength(8, "Your password must have 8 characters or more."),
+  ]),
+})
 
 export default function Login({
   searchParams,
@@ -16,6 +31,18 @@ export default function Login({
 
     const email = formData.get("email") as string
     const password = formData.get("password") as string
+
+    // Validate the form data
+    try {
+      v.parse(LoginSchema, { email, password })
+      // Handle errors if one occurs
+    } catch (error) {
+      if (error instanceof v.ValiError) {
+        let message = error.message
+        return redirect(`/login?message=${message}`)
+      }
+    }
+
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
 
@@ -56,7 +83,7 @@ export default function Login({
   }
 
   return (
-    <div className="flex w-full h-full items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center">
       <div className="flex w-full flex-1 flex-col justify-center gap-2 px-8 sm:max-w-md">
         <Link
           href="/"
@@ -65,45 +92,27 @@ export default function Login({
             "group absolute left-8 top-8 no-underline"
           )}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>{" "}
+          <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
           Back
         </Link>
-
         <form
           className="flex w-full flex-1 flex-col justify-center gap-2 text-foreground animate-in"
           action={signIn}
         >
-          <label className="text-md" htmlFor="email">
-            Email
-          </label>
-          <input
-            className="mb-6 border bg-inherit px-4 py-2"
+          <Label htmlFor="email">Email</Label>
+          <Input
             name="email"
             placeholder="you@example.com"
             required
+            className="mb-2"
           />
-          <label className="text-md" htmlFor="password">
-            Password
-          </label>
-          <input
-            className="mb-6 border bg-inherit px-4 py-2"
+          <Label htmlFor="password">Password</Label>
+          <Input
             type="password"
             name="password"
             placeholder="••••••••"
             required
+            className="mb-2"
           />
           <Button>Sign In</Button>
           <Button formAction={signUp} variant="outline">

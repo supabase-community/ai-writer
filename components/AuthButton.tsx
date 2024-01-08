@@ -1,39 +1,36 @@
-import { createClient } from "@/utils/supabase/server";
-import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { buttonVariants } from "./ui/button";
-import { cn } from "@/lib/utils";
+import { cookies } from "next/headers"
+import Link from "next/link"
+import { redirect } from "next/navigation"
+import { createClient } from "@/supabase/server"
+
+import { cn } from "@/lib/utils"
+
+import { Button, buttonVariants } from "./ui/button"
 
 export default async function AuthButton() {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  const cookieStore = cookies()
+  const supabase = createClient(cookieStore)
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession()
 
   const signOut = async () => {
-    "use server";
+    "use server"
 
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
-    await supabase.auth.signOut();
-    return redirect("/login");
-  };
+    const cookieStore = cookies()
+    const supabase = createClient(cookieStore)
+    await supabase.auth.signOut()
+    return redirect("/login")
+  }
 
-  return user ? (
-    <div className="flex items-center gap-4">
-      Hey, {user.email}!
-      <form action={signOut}>
-        <button className="py-2 px-4 rounded-md no-underline bg-btn-background hover:bg-btn-background-hover">
-          Logout
-        </button>
-      </form>
-    </div>
+  return session ? (
+    <form action={signOut}>
+      <Button size="sm">Logout</Button>
+    </form>
   ) : (
     <Link href="/login" className={cn(buttonVariants({ size: "sm" }))}>
       Login
     </Link>
-  );
+  )
 }

@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import "./globals.css"
 
 import { cn } from "@/lib/utils"
+import EntryProvider from "@/components/EntryProvider"
 import Layout from "@/components/Layout"
 import ThemeProvider from "@/components/ThemeProvider"
 
@@ -20,7 +21,7 @@ const notoSerifDisplay = Noto_Serif_Display({
 export const metadata = {
   metadataBase: new URL(defaultUrl),
   title: "Next.js and Supabase AI Writer Starter Kit",
-  description: "Clean AF writing app with AI autocomplete",
+  description: "Clean af writing app with AI autocomplete",
 }
 
 export default function RootLayout({
@@ -32,14 +33,16 @@ export default function RootLayout({
     <html lang="en" className={GeistSans.className}>
       <body className="bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <main
-            className={cn(
-              notoSerifDisplay.variable,
-              "h-dvh items-center font-sans antialiased"
-            )}
-          >
-            <Layout>{children}</Layout>
-          </main>
+          <EntryProvider>
+            <main
+              className={cn(
+                notoSerifDisplay.variable,
+                "h-dvh items-center font-sans subpixel-antialiased"
+              )}
+            >
+              <Layout>{children}</Layout>
+            </main>
+          </EntryProvider>
         </ThemeProvider>
       </body>
     </html>
