@@ -38,7 +38,7 @@ export default function Login({
       // Handle errors if one occurs
     } catch (error) {
       if (error instanceof v.ValiError) {
-        let message = error.message
+        const message = error.message
         return redirect(`/login?message=${message}`)
       }
     }
@@ -83,7 +83,7 @@ export default function Login({
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div className="flex size-full items-center justify-center">
       <div className="flex w-full flex-1 flex-col justify-center gap-2 px-8 sm:max-w-md">
         <Link
           href="/"
@@ -92,7 +92,7 @@ export default function Login({
             "group absolute left-8 top-8 no-underline"
           )}
         >
-          <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          <ChevronLeft className="mr-2 size-4 transition-transform group-hover:-translate-x-1" />
           Back
         </Link>
         <form
@@ -118,7 +118,7 @@ export default function Login({
           <Button formAction={signUp} variant="outline">
             Sign Up
           </Button>
-          {searchParams?.message && (
+          {searchParams.message && (
             <p className="mt-4 bg-foreground/10 p-4 text-center text-foreground">
               {searchParams.message}
             </p>

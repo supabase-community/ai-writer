@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import { type ChangeEvent } from "react"
 import { useCompletion } from "ai/react"
 import { Bot } from "lucide-react"
 import { useDebounce, useUpdateEffect } from "usehooks-ts"
@@ -30,7 +30,7 @@ export default function EditorTitleArea({
   const debouncedBody = useDebounce(body, 10000)
 
   // Function to handle input change and update the title value
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value)
   }
 
