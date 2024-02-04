@@ -1,10 +1,16 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
+import { unstable_noStore as noStore } from "next/cache"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/supabase/client"
-import { type PostgrestError } from "@supabase/supabase-js"
-import { useDebounce, useSessionStorage } from "usehooks-ts"
+import type { PostgrestError, Session } from "@supabase/supabase-js"
+import {
+  useDebounce,
+  useEffectOnce,
+  useSessionStorage,
+  useUpdateEffect,
+} from "usehooks-ts"
 
 import { createUrlWithParams } from "@/lib/utils"
 
@@ -21,15 +27,14 @@ export interface Entry {
 // Define the type for the context state
 interface EntryContextType {
   entries: Entry[]
-  title: string
-  body: string
-  created_at: string
-  setTitle: (title: string) => void
-  setBody: (body: string) => void
+  currentEntry: Entry
+  setCurrentEntryTitle: (title: string) => void
+  setCurrentEntryBody: (body: string) => void
   createEntry: () => void
   deleteEntry: (created_at: string) => void
   synchronizing: boolean
-  error: PostgrestError | any
+  error: PostgrestError | undefined
+  session: Session | null
 }
 
 // Create a context
@@ -37,7 +42,29 @@ const EntryContext = createContext<EntryContextType | undefined>(undefined)
 
 // Create a Provider component
 const EntryProvider = ({ children }: { children: React.ReactNode }) => {
+  noStore() // opt out of Next.js built-in caching
   const router = useRouter()
+  const supabase = createClient()
+  const [session, setSession] = useState<Session | null>(null)
+
+  // Listen for changes to the auth state and update the session context
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(event, session)
+      if (event === "SIGNED_OUT") {
+        setSession(null)
+      }  else if (session) {
+        setSession(session)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router, supabase])
+
   const searchParams = useSearchParams()
   const paramEntryId = searchParams.get("entry")
   const [localEntries, setLocalEntries] = useSessionStorage<Entry[]>(
@@ -54,15 +81,12 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
     body: firstEntry,
   }
 
-  const title = currentEntry.title
-  const body = currentEntry.body
-  const created_at = currentEntry.created_at
-  const setTitle = (title: string) => {
+  const setCurrentEntryTitle = (title: string) => {
     const updatedEntry = {
       ...currentEntry,
       title,
       updated_at: new Date().toISOString(),
-      created_at: currentEntry?.created_at || new Date().toISOString(),
+      created_at: currentEntry.created_at || new Date().toISOString(),
     }
     setEntries(
       entries.map((entry) =>
@@ -70,12 +94,12 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
       )
     )
   }
-  const setBody = (body: string) => {
+  const setCurrentEntryBody = (body: string) => {
     const updatedEntry = {
       ...currentEntry,
       body,
       updated_at: new Date().toISOString(),
-      created_at: currentEntry?.created_at || new Date().toISOString(),
+      created_at: currentEntry.created_at || new Date().toISOString(),
     }
     setEntries(
       entries.map((entry) =>
@@ -143,25 +167,13 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
     setEntries(updatedEntries)
   }
   const debouncedEntries = useDebounce(entries, 1000)
-  const [synchronizing, setSyncronizing] = useState(false)
-  const [error, setError] = useState<PostgrestError | any>(null)
-  const supabase = createClient()
+  const [synchronizing, setSynchronizing] = useState(false)
+  const [error, setError] = useState<PostgrestError>()
 
-  // If the user signs in refresh the page
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") router.refresh()
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [router, supabase])
-
-  useEffect(() => {
+  // Fetch entries from Supabase and reconcile with local entries
+  useEffectOnce(() => {
     async function reconcileEntries() {
+      //const { data: supabaseEntries, error: entryFetchError  } = useQuery(getEntries(supabase))
       const { data: supabaseEntries, error: entryFetchError } = await supabase
         .from("entries")
         .select("title, body, created_at, updated_at")
@@ -170,7 +182,7 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
       }
       // Fix supabaseEntries dates
       supabaseEntries &&
-        supabaseEntries?.forEach((entry) => {
+        supabaseEntries.forEach((entry) => {
           entry.created_at = new Date(entry.created_at).toISOString()
           entry.updated_at = new Date(entry.updated_at).toISOString()
         })
@@ -198,7 +210,7 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
         setEntries(localEntries)
       // If both local and Supabase entries exist reconcile them
       else if (localEntries.length && supabaseEntries?.length) {
-        let combinedEntries = localEntries.map((localEntry) => {
+        const combinedEntries = localEntries.map((localEntry) => {
           const supabaseEquivalent = supabaseEntries.find(
             (supabaseEntry) =>
               supabaseEntry.created_at === localEntry.created_at &&
@@ -218,28 +230,30 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
         ])
         setEntries(reconciledEntries)
       }
+
       // If paramEntryId is not in the entries list redirect to the first entry
       if (
         paramEntryId &&
         !entries.some((entry) => entry.created_at === paramEntryId)
       ) {
         const newParams = new URLSearchParams()
-        newParams.set("entry", entries[0].created_at)
+        newParams.set("entry", entries[0]?.created_at)
         router.push(createUrlWithParams("/", newParams))
       }
+
       // If there is no paramEntryId redirect to the first entry
       if (!paramEntryId) {
         const newParams = new URLSearchParams()
-        newParams.set("entry", entries[0].created_at)
+        newParams.set("entry", entries[0]?.created_at)
         router.push(createUrlWithParams("/", newParams))
       }
     }
     reconcileEntries()
-  }, [])
+  })
 
   // Update session storage and Supabase when local entries change
   useEffect(() => {
-    setSyncronizing(true)
+    setSynchronizing(true)
     setLocalEntries(debouncedEntries)
     const upsertEntries = async () => {
       const { error } = await supabase
@@ -250,22 +264,33 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
     upsertEntries()
-    setSyncronizing(false)
-  }, [debouncedEntries])
+    setSynchronizing(false)
+  }, [debouncedEntries, setLocalEntries, supabase, setError, setSynchronizing])
+
+  // If the paramEntryId changes check that it is in the entries list, if not redirect to the first entry
+  useUpdateEffect(() => {
+    if (
+      paramEntryId &&
+      !entries.some((entry) => entry.created_at === paramEntryId)
+    ) {
+      const newParams = new URLSearchParams()
+      newParams.set("entry", entries[0]?.created_at)
+      router.push(createUrlWithParams("/", newParams))
+    }
+  }, [paramEntryId])
 
   return (
     <EntryContext.Provider
       value={{
         entries,
-        title,
-        body,
-        created_at,
-        setTitle,
-        setBody,
+        currentEntry,
+        setCurrentEntryTitle,
+        setCurrentEntryBody,
         createEntry,
         deleteEntry,
         synchronizing,
         error,
+        session,
       }}
     >
       {children}

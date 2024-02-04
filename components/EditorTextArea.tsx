@@ -1,41 +1,40 @@
-import React, { useEffect, useRef } from "react"
+import React, { useCallback, useEffect, useRef } from "react"
 import { useCompletion } from "ai/react"
-import { useDebounce } from "usehooks-ts"
+import { useDebounce, useUpdateEffect } from "usehooks-ts"
 
 import { Textarea } from "./ui/textarea"
 
 interface EditorTextAreaProps {
   body: string
-  setBody: (body: string) => void
+  setCurrentEntryBody: (body: string) => void
 }
 
 export default function EditorTextArea({
   body,
-  setBody,
+  setCurrentEntryBody,
 }: EditorTextAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const completionRef = useRef<HTMLDivElement>(null)
   const debouncedBody = useDebounce(body, 1000)
-  const { complete, error, setCompletion, completion, stop, isLoading } =
-    useCompletion({
-      api: "/api/completion",
-    })
+  const { complete, setCompletion, completion, stop } = useCompletion({
+    api: "/api/completion",
+  })
 
   // When the body changes, fetch a completion with 1 second debounce
   useEffect(() => {
-    if (debouncedBody?.length > 5) {
-      complete(debouncedBody)
+    if (debouncedBody.length > 5) {
+      complete(debouncedBody.slice(-200)) // Only send the last 200 characters
     }
-  }, [debouncedBody])
+  }, [debouncedBody, complete])
 
   // When the body changes instantly clear the completion and stop fetching
-  useEffect(() => {
+  useUpdateEffect(() => {
     stop()
     setCompletion("")
   }, [body])
 
   // Function to replace the current word with the completion
-  const appendSuggestion = () => {
+  const appendSuggestion = useCallback(() => {
     // If there is no space at the end of the body or the beginning of the completion, add one. Otherwise if the completion begins with punctuation don't add a space
     const newValue =
       body +
@@ -47,11 +46,12 @@ export default function EditorTextArea({
         ? ""
         : " ") +
       completion
-    setBody(newValue)
-  }
+    setCurrentEntryBody(newValue)
+  }, [body, completion, setCurrentEntryBody])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      //console.log(e.key)
       if (e.key === "Tab") {
         // Handle tab key
         e.preventDefault()
@@ -62,11 +62,11 @@ export default function EditorTextArea({
     const textarea = textareaRef.current
     textarea?.addEventListener("keydown", handleKeyDown)
     return () => textarea?.removeEventListener("keydown", handleKeyDown)
-  }, [body, completion])
+  }, [body, completion, appendSuggestion])
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setBody(e.target.value)
+    setCurrentEntryBody(e.target.value)
   }
 
   // Sync scroll positions
@@ -85,12 +85,16 @@ export default function EditorTextArea({
   }, [])
 
   return (
-    <div className="relative px-0">
+    <div className="relative h-full">
       <Textarea
         ref={textareaRef}
         value={body}
         onChange={handleChange}
-        placeholder="Body (start typing to activate generative autocomplete)"
+        placeholder={
+          completion.length
+            ? ""
+            : "Body (start typing to activate generative autocomplete)"
+        }
         style={
           completion.length
             ? { paddingBottom: "4rem" }
@@ -106,15 +110,12 @@ export default function EditorTextArea({
             ? { paddingBottom: "4rem" }
             : { paddingBottom: "0.5rem" }
         }
-        className="absolute left-0 top-0 z-0 h-full min-h-[60px] w-full resize-none overflow-y-auto border border-transparent px-3 py-2 text-sm shadow-none outline-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        className="absolute left-0 top-0 z-0 size-full min-h-[60px] resize-none overflow-y-auto border border-transparent px-3 py-2 text-sm shadow-none outline-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="invisible whitespace-pre-wrap">{body}</span>
         <span className="whitespace-pre-wrap text-muted-foreground">
           {(body.endsWith(" ") ||
-          completion.startsWith(" ") ||
-          completion.startsWith(".") ||
-          completion.startsWith("?") ||
-          completion.startsWith("!")
+          [" ", ".", "?", "!"].some((char) => completion.startsWith(char))
             ? ""
             : " ") + completion}
         </span>

@@ -3,9 +3,13 @@ import { GeistSans } from "geist/font/sans"
 
 import "./globals.css"
 
+import { Suspense } from "react"
+import { Menu } from "lucide-react"
+
 import { cn } from "@/lib/utils"
+import DesktopLayout from "@/components/DesktopLayout"
 import EntryProvider from "@/components/EntryProvider"
-import Layout from "@/components/Layout"
+import MobileLayout from "@/components/MobileLayout"
 import ThemeProvider from "@/components/ThemeProvider"
 
 const defaultUrl = process.env.VERCEL_URL
@@ -40,7 +44,10 @@ export default function RootLayout({
                 "h-dvh items-center font-sans subpixel-antialiased"
               )}
             >
-              <Layout>{children}</Layout>
+              <DesktopLayout>{children}</DesktopLayout>
+              <Suspense fallback={<Menu className="size-5" />}>
+                <MobileLayout>{children}</MobileLayout>
+              </Suspense>
             </main>
           </EntryProvider>
         </ThemeProvider>

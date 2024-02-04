@@ -1,25 +1,33 @@
 "use client"
 
-import { type Session } from "@supabase/supabase-js"
 import { Loader2 } from "lucide-react"
 
 import EditorTextArea from "./EditorTextArea"
 import EditorTitleArea from "./EditorTitleArea"
 import { useEntries } from "./EntryProvider"
 
-// Define the props for the Editor component
-interface EditorProps {
-  session: Session | null
-}
-
-export default function Editor({ session }: EditorProps) {
-  const { title, setTitle, body, setBody, synchronizing, error } = useEntries()
+export default function Editor() {
+  const {
+    currentEntry,
+    setCurrentEntryTitle,
+    setCurrentEntryBody,
+    synchronizing,
+    error,
+    session,
+  } = useEntries()
 
   return (
-    <div className="grid h-full max-w-4xl flex-1 grid-rows-[50px_1fr] gap-4 animate-in">
-      <EditorTitleArea title={title} setTitle={setTitle} textareaValue={body} />
-      <EditorTextArea body={body} setBody={setBody} />
-      <div className="text-right text-xs">
+    <div className="flex size-full max-w-4xl flex-col gap-y-4 animate-in">
+      <EditorTitleArea
+        title={currentEntry.title}
+        setTitle={setCurrentEntryTitle}
+        body={currentEntry.body}
+      />
+      <EditorTextArea
+        body={currentEntry.body}
+        setCurrentEntryBody={setCurrentEntryBody}
+      />
+      <div className="mt-2 text-right text-xs">
         {session ? (
           error ? (
             <span className="text-red-500">
@@ -28,7 +36,7 @@ export default function Editor({ session }: EditorProps) {
           ) : synchronizing ? (
             <span>
               Backing up entries{" "}
-              <Loader2 className="my-auto inline-block h-4 w-4 animate-spin" />
+              <Loader2 className="my-auto inline-block size-4 animate-spin" />
             </span>
           ) : (
             "Backup complete"

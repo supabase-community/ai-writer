@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect } from "react"
 import { useCompletion } from "ai/react"
 import { Bot } from "lucide-react"
-import { useDebounce } from "usehooks-ts"
+import { useDebounce, useUpdateEffect } from "usehooks-ts"
 
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
@@ -9,42 +9,48 @@ import { Input } from "./ui/input"
 interface EditorTitleAreaProps {
   title: string
   setTitle: (title: string) => void
-  textareaValue: string
+  body: string
 }
 export default function EditorTitleArea({
   title,
   setTitle,
-  textareaValue,
+  body,
 }: EditorTitleAreaProps) {
-  const { complete, error, setCompletion, completion, stop, isLoading } =
-    useCompletion({
-      api: "/api/title-generation",
-    })
-  // Debounce the title value by 10 seconds
-  const debouncedTitle = useDebounce(textareaValue, 10000)
+  /* useEffect(() => {
+    console.log("title:", title)
+  }, [title])
+  useEffect(() => {
+    console.log("body:", body)
+  }, [body]) */
+
+  const { complete, completion, isLoading } = useCompletion({
+    api: "/api/title-generation",
+  })
+  // Debounce the body value by 10 seconds
+  const debouncedBody = useDebounce(body, 10000)
 
   // Function to handle input change and update the title value
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value)
   }
 
-  // Async function to fetch a title suggestion
+  // Async function to fetch a title suggestion only called when the debounced body value changes
   const generateTitle = async () => {
-    complete(debouncedTitle)
+    complete(debouncedBody)
   }
 
   // When the body value changes call generateTitle with 10 second debounce
-  useEffect(() => {
-    if (debouncedTitle?.length > 20 && title.trim() === "") {
+  useUpdateEffect(() => {
+    if (debouncedBody.length > 20 && title.trim() === "") {
       // Only generate a title if the body is longer than 20 characters and the title is empty
       generateTitle()
     }
-  }, [debouncedTitle])
+  }, [debouncedBody, title])
 
   // When the completion updates, update the value
-  useEffect(() => {
-    if (completion === "") return
+  useUpdateEffect(() => {
     let newValue = completion.trim()
+    if (newValue === "") return
     // Remove surrounding quotes if present
     if (newValue.startsWith('"')) newValue = newValue.slice(1)
     if (newValue.endsWith('"')) newValue = newValue.slice(0, -1)
@@ -67,10 +73,10 @@ export default function EditorTitleArea({
       <Button
         variant="ghost"
         size="icon"
-        className="group/button absolute right-0 h-9 w-9 "
+        className="group/button absolute right-0 size-9 group-focus-within/input:bg-background"
         onClick={() => generateTitle()}
       >
-        <Bot className="h-5 w-5 opacity-0 transition-opacity group-hover/input:opacity-100 group-focus/button:opacity-100" />
+        <Bot className="size-5 opacity-0 transition-opacity group-hover/input:opacity-100 group-focus/button:opacity-100" />
         <span className="sr-only">Generate title</span>
       </Button>
     </div>

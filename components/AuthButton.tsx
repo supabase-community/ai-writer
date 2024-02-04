@@ -1,27 +1,22 @@
-import { cookies } from "next/headers"
+"use client"
+
 import Link from "next/link"
-import { redirect } from "next/navigation"
-import { createClient } from "@/supabase/server"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/supabase/client"
 
 import { cn } from "@/lib/utils"
 
+import { useEntries } from "./EntryProvider"
 import { Button, buttonVariants } from "./ui/button"
 
-export default async function AuthButton() {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+export default function AuthButton() {
+  const supabase = createClient()
+  const router = useRouter()
+  const { session } = useEntries()
 
   const signOut = async () => {
-    "use server"
-
-    const cookieStore = cookies()
-    const supabase = createClient(cookieStore)
     await supabase.auth.signOut()
-    return redirect("/login")
+    router.push("/login")
   }
 
   return session ? (
