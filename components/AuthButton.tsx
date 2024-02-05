@@ -1,31 +1,28 @@
-"use client"
+"use server"
 
+import { cookies } from "next/headers"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/supabase/client"
+import { createClient } from "@/supabase/server"
 
+import { signOut } from "@/lib/actions/sign-out"
 import { cn } from "@/lib/utils"
 
-import { useEntries } from "./EntryProvider"
 import { Button, buttonVariants } from "./ui/button"
 
-export default function AuthButton() {
-  const supabase = createClient()
-  const router = useRouter()
-  const { session } = useEntries()
-
-  const signOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-  }
+export default async function AuthButton() {
+  const cookieStore = cookies()
+  const supabase = createClient(cookieStore)
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
   return session ? (
     <form action={signOut}>
-      <Button size="sm">Logout</Button>
+      <Button size="sm">Sign Out</Button>
     </form>
   ) : (
-    <Link href="/login" className={cn(buttonVariants({ size: "sm" }))}>
-      Login
+    <Link href="/signin" className={cn(buttonVariants({ size: "sm" }))}>
+      Sign In
     </Link>
   )
 }

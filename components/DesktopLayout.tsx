@@ -6,7 +6,7 @@ import Footer from "./Footer"
 import Logo from "./Logo"
 import ThemeToggle from "./ThemeToggle"
 
-export default async function DesktopLayout({
+export default function DesktopLayout({
   children,
 }: {
   children: React.ReactNode
@@ -15,24 +15,22 @@ export default async function DesktopLayout({
     loading: () => <EntriesSkeleton />,
     ssr: false,
   })
+
   return (
     <div className="hidden size-full md:flex">
-      <div className="h-full max-w-sm border-r border-border">
-        <div className="flex h-full max-h-dvh items-center justify-center p-6">
-          <nav className="flex size-full max-h-full flex-col justify-between">
-            <Logo />
-            <Entries />
-            <div className="flex w-full max-w-4xl items-center justify-between p-3 text-sm">
-              <AuthButton />
-              <ThemeToggle />
-            </div>
-            <Footer />
-          </nav>
+      <nav className="flex max-h-full w-1/3 min-w-40 max-w-sm flex-col items-center justify-center border-r border-border p-6">
+        <Logo />
+        <Entries />
+        <div className="flex w-full max-w-4xl items-center justify-between p-3 text-sm">
+          <AuthButton />
+          <ThemeToggle />
         </div>
-      </div>
-      <div className="relative col-span-3 size-full max-h-dvh items-center justify-center">
+        <Footer />
+      </nav>
+      <div className="relative size-full max-h-dvh items-center justify-center">
         {children}
       </div>
     </div>
   )
 }
+  

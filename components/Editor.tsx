@@ -42,7 +42,7 @@ export default function Editor() {
             "Backup complete"
           )
         ) : (
-          "Login to save your entries to Supabase"
+          "Sign in to save your entries to Supabase"
         )}
       </div>
     </div>

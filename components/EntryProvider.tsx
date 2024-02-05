@@ -1,10 +1,10 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState } from "react"
 import { unstable_noStore as noStore } from "next/cache"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/supabase/client"
-import type { PostgrestError, Session } from "@supabase/supabase-js"
+import type { PostgrestError } from "@supabase/supabase-js"
 import {
   useDebounce,
   useEffectOnce,
@@ -34,7 +34,6 @@ interface EntryContextType {
   deleteEntry: (created_at: string) => void
   synchronizing: boolean
   error: PostgrestError | undefined
-  session: Session | null
 }
 
 // Create a context
@@ -44,26 +43,7 @@ const EntryContext = createContext<EntryContextType | undefined>(undefined)
 const EntryProvider = ({ children }: { children: React.ReactNode }) => {
   noStore() // opt out of Next.js built-in caching
   const router = useRouter()
-  const supabase = createClient()
-  const [session, setSession] = useState<Session | null>(null)
-
-  // Listen for changes to the auth state and update the session context
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(event, session)
-      if (event === "SIGNED_OUT") {
-        setSession(null)
-      }  else if (session) {
-        setSession(session)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [router, supabase])
+  const [supabase] = useState(() => createClient())
 
   const searchParams = useSearchParams()
   const paramEntryId = searchParams.get("entry")
@@ -252,7 +232,7 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
   })
 
   // Update session storage and Supabase when local entries change
-  useEffect(() => {
+  useUpdateEffect(() => {
     setSynchronizing(true)
     setLocalEntries(debouncedEntries)
     const upsertEntries = async () => {
@@ -265,7 +245,7 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
     }
     upsertEntries()
     setSynchronizing(false)
-  }, [debouncedEntries, setLocalEntries, supabase, setError, setSynchronizing])
+  }, [debouncedEntries])
 
   // If the paramEntryId changes check that it is in the entries list, if not redirect to the first entry
   useUpdateEffect(() => {
@@ -290,7 +270,6 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
         deleteEntry,
         synchronizing,
         error,
-        session,
       }}
     >
       {children}

@@ -7,6 +7,7 @@ import { Suspense } from "react"
 import { Menu } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import AuthButton from "@/components/AuthButton"
 import DesktopLayout from "@/components/DesktopLayout"
 import EntryProvider from "@/components/EntryProvider"
 import MobileLayout from "@/components/MobileLayout"
@@ -46,7 +47,7 @@ export default function RootLayout({
             >
               <DesktopLayout>{children}</DesktopLayout>
               <Suspense fallback={<Menu className="size-5" />}>
-                <MobileLayout>{children}</MobileLayout>
+                <MobileLayout AuthButton={AuthButton}>{children}</MobileLayout>
               </Suspense>
             </main>
           </EntryProvider>

@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { usePathname, useSearchParams } from "next/navigation"
 import { Menu } from "lucide-react"
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
-import AuthButton from "./AuthButton"
 import EntriesSkeleton from "./EntriesSkeleton"
 import Footer from "./Footer"
 import Logo from "./Logo"
@@ -16,8 +15,10 @@ import { Button } from "./ui/button"
 
 export default function MobileLayout({
   children,
+  AuthButton,
 }: {
   children: React.ReactNode
+  AuthButton: React.FC
 }) {
   const Entries = dynamic(() => import("@/components/Entries"), {
     loading: () => <EntriesSkeleton />,
