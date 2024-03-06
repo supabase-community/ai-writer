@@ -13,7 +13,7 @@ export default function Editor() {
     setCurrentEntryBody,
     synchronizing,
     error,
-    session,
+    session = null,
   } = useEntries()
 
   return (
