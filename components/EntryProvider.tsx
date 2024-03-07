@@ -104,7 +104,7 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
 
-  const createEntry = () => {
+  /*   const createEntry = () => {
     const timestamp = new Date().toISOString()
     const newParams = new URLSearchParams()
     newParams.set("entry", timestamp)
@@ -122,6 +122,24 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
     const updatedEntryList = [...entries, newEntry]
     setEntries(sortEntries(updatedEntryList))
     router.push(createUrlWithParams("/", newParams))
+  } */
+
+  const createEntry = () => {
+    const timestamp = new Date().toISOString()
+    const newEntry: Entry = {
+      created_at: timestamp,
+      updated_at: timestamp,
+      title: firstTitle,
+      body: "",
+    }
+
+    setEntries((prevEntries) => sortEntries([...prevEntries, newEntry]))
+
+    // Push the new entry URL to the browser history
+    const newParams = new URLSearchParams()
+    newParams.set("entry", newEntry.created_at)
+    const newUrl = createUrlWithParams("/journal", newParams)
+    window.history.pushState(null, "", newUrl)
   }
 
   const deleteEntry = async (created_at: string) => {
@@ -244,6 +262,7 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (session?.user.role !== "authenticated") return
     setSynchronizing(true)
+    setError(undefined)
     setLocalEntries(entries)
     const upsertEntries = async () => {
       const { error } = await supabase
