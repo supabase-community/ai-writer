@@ -1,15 +1,6 @@
 {
-  "extends": [
-    "next",
-    "prettier",
-    "eslint:recommended",
-    "plugin:tailwindcss/recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": { "project": ["./tsconfig.json"] },
-  "plugins": ["@typescript-eslint", "tailwindcss"],
+  "extends": "next/core-web-vitals",
   "rules": {
-    "@typescript-eslint/no-unnecessary-condition": "error"
+    "react-hooks/exhaustive-deps": "off"
   }
 }

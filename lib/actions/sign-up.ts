@@ -1,4 +1,4 @@
-import { cookies, headers } from "next/headers"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/supabase/server"
 import * as v from "valibot"
@@ -31,8 +31,7 @@ export const signUp = async (formData: FormData) => {
       return redirect(`/signin?message=${message}`)
     }
   }
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+  const supabase = createClient()
 
   const { error } = await supabase.auth.signUp({
     email,

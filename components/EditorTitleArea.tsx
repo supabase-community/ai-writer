@@ -1,61 +1,59 @@
-import { type ChangeEvent } from "react"
+import { useEffect, type ChangeEvent } from "react"
 import { useCompletion } from "ai/react"
 import { Bot } from "lucide-react"
-import { useDebounce, useUpdateEffect } from "usehooks-ts"
+import { useDebounceValue } from "usehooks-ts"
 
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 
 interface EditorTitleAreaProps {
-  title: string
+  title: string 
   setTitle: (title: string) => void
-  body: string
+  body: string | undefined
 }
 export default function EditorTitleArea({
-  title,
+  title = "",
   setTitle,
   body,
 }: EditorTitleAreaProps) {
-  /* useEffect(() => {
-    console.log("title:", title)
-  }, [title])
-  useEffect(() => {
-    console.log("body:", body)
-  }, [body]) */
-
   const { complete, completion, isLoading } = useCompletion({
     api: "/api/title-generation",
   })
-  // Debounce the body value by 10 seconds
-  const debouncedBody = useDebounce(body, 10000)
+  const [debouncedBody, setDebouncedBody] = useDebounceValue("", 5000)
+
+  useEffect(() => {
+    body && setDebouncedBody(body)
+  }, [body, setDebouncedBody])
 
   // Function to handle input change and update the title value
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value)
+    const newTitle = e.target.value
+    setTitle(newTitle)
+    if (debouncedBody.length > 20 && title?.trim() === "") {
+      complete(debouncedBody)
+    }
   }
 
-  // Async function to fetch a title suggestion only called when the debounced body value changes
-  const generateTitle = async () => {
+  // Function to generate a title suggestion
+  const generateTitle = () => {
     complete(debouncedBody)
   }
 
-  // When the body value changes call generateTitle with 10 second debounce
-  useUpdateEffect(() => {
-    if (debouncedBody.length > 20 && title.trim() === "") {
-      // Only generate a title if the body is longer than 20 characters and the title is empty
-      generateTitle()
+  // Function to format the completion and update the title
+  const updateTitle = (newValue: string) => {
+    const formattedValue = newValue.trim()
+    if (formattedValue !== "") {
+      let updatedValue = formattedValue
+      if (updatedValue.startsWith('"')) updatedValue = updatedValue.slice(1)
+      if (updatedValue.endsWith('"')) updatedValue = updatedValue.slice(0, -1)
+      setTitle(updatedValue)
     }
-  }, [debouncedBody, title])
+  }
 
-  // When the completion updates, update the value
-  useUpdateEffect(() => {
-    let newValue = completion.trim()
-    if (newValue === "") return
-    // Remove surrounding quotes if present
-    if (newValue.startsWith('"')) newValue = newValue.slice(1)
-    if (newValue.endsWith('"')) newValue = newValue.slice(0, -1)
-    setTitle(newValue)
-  }, [completion])
+  // Update the title when the completion changes
+  if (completion && completion !== title) {
+    updateTitle(completion)
+  }
 
   return (
     <div className="group/input relative items-center justify-between">

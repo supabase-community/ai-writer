@@ -1,14 +1,17 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { LoaderCircle } from "lucide-react"
 
-import EditorTextArea from "./EditorTextArea"
+import EditorBodyArea from "./EditorBodyArea"
+import { EditorSkeleton } from "./EditorSkeleton"
 import EditorTitleArea from "./EditorTitleArea"
 import { useEntries } from "./EntryProvider"
 
 export default function Editor() {
   const {
     currentEntry,
+    currentEntryTitle,
+    currentEntryBody,
     setCurrentEntryTitle,
     setCurrentEntryBody,
     synchronizing,
@@ -16,15 +19,17 @@ export default function Editor() {
     session = null,
   } = useEntries()
 
+  if (!currentEntry) return <EditorSkeleton />
+
   return (
     <div className="flex size-full max-w-4xl flex-col gap-y-4 animate-in">
       <EditorTitleArea
-        title={currentEntry.title}
+        title={currentEntryTitle}
         setTitle={setCurrentEntryTitle}
-        body={currentEntry.body}
+        body={currentEntryBody}
       />
-      <EditorTextArea
-        body={currentEntry.body}
+      <EditorBodyArea
+        body={currentEntryBody}
         setCurrentEntryBody={setCurrentEntryBody}
       />
       <div className="mt-2 text-right text-xs">
@@ -36,13 +41,13 @@ export default function Editor() {
           ) : synchronizing ? (
             <span>
               Backing up entries{" "}
-              <Loader2 className="my-auto inline-block size-4 animate-spin" />
+              <LoaderCircle className="my-auto inline-block size-4 animate-spin" />
             </span>
           ) : (
             "Backup complete"
           )
         ) : (
-          "Sign in to save your entries to Supabase"
+          "Sign in to save entries to Supabase"
         )}
       </div>
     </div>

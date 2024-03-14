@@ -41,5 +41,5 @@ export const signIn = async (formData: FormData) => {
     return redirect("/signin?message=Could not authenticate user")
   }
 
-  return redirect("/")
+  return redirect("/reconcile")
 }

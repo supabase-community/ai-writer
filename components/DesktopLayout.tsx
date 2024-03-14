@@ -11,7 +11,7 @@ export default function DesktopLayout({
 }: {
   children: React.ReactNode
 }) {
-  const Entries = dynamic(() => import("@/components/Entries"), {
+  const Entries = dynamic(() => import("./Entries"), {
     loading: () => <EntriesSkeleton />,
     ssr: false,
   })

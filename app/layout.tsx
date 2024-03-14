@@ -1,15 +1,15 @@
 import { Noto_Serif_Display } from "next/font/google"
-import { GeistSans } from "geist/font/sans"
 
 import "./globals.css"
 
 import { Suspense } from "react"
+import { GeistSans } from "geist/font/sans"
 import { Menu } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import AuthButton from "@/components/AuthButton"
 import DesktopLayout from "@/components/DesktopLayout"
 import EntryProvider from "@/components/EntryProvider"
+import { EntrySetter } from "@/components/EntrySetter"
 import MobileLayout from "@/components/MobileLayout"
 import ThemeProvider from "@/components/ThemeProvider"
 
@@ -47,9 +47,13 @@ export default function RootLayout({
             >
               <DesktopLayout>{children}</DesktopLayout>
               <Suspense fallback={<Menu className="size-5" />}>
-                <MobileLayout AuthButton={AuthButton}>{children}</MobileLayout>
+                <MobileLayout>{children}</MobileLayout>
               </Suspense>
             </main>
+            <Suspense>
+              {/* EntrySetter uses useSearchParams and must be wrapped in suspense */}
+              <EntrySetter />
+            </Suspense>
           </EntryProvider>
         </ThemeProvider>
       </body>

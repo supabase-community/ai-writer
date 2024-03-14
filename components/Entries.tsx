@@ -1,28 +1,37 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Plus, Trash } from "lucide-react"
 
 import { cn, createUrlWithParams } from "@/lib/utils"
 import { useEntries } from "@/components/EntryProvider"
 
+import EntriesSkeleton from "./EntriesSkeleton"
 import { Button, buttonVariants } from "./ui/button"
 
 export default function Entries() {
-  const { entries, currentEntry, createEntry, deleteEntry } = useEntries()
+  const pathname = usePathname()
+  const { entries, currentEntryId, createEntry, deleteEntry } = useEntries()
+
+  if (pathname === "/reconcile") return <EntriesSkeleton />
 
   return (
     <>
-      <Button variant="outline" className="my-3 w-full" onClick={createEntry}>
+      <Button
+        variant="outline"
+        className="my-3 w-full"
+        onClick={() => createEntry({})}
+      >
         <Plus className="size-5" />
       </Button>
       <div className="size-full overflow-y-auto">
-        {entries.map((entry) => {
+        {entries.map((entry, index) => {
           const newParams = new URLSearchParams()
-          newParams.set("entry", entry.created_at)
+          newParams.set("entry", entry.id)
           return (
             <div
-              key={entry.created_at}
+              key={index}
               className="group/link relative items-center justify-between"
             >
               <Link
@@ -30,7 +39,7 @@ export default function Entries() {
                 className={cn(
                   buttonVariants({ variant: "link" }),
                   "inline-block w-full truncate",
-                  currentEntry.created_at === entry.created_at && "bg-secondary"
+                  currentEntryId === entry.id && "bg-secondary"
                 )}
               >
                 {entry.title.trim() !== "" ? (
@@ -44,11 +53,11 @@ export default function Entries() {
                 size="icon"
                 className={cn(
                   "group/button absolute right-0 h-9 w-9",
-                  currentEntry.created_at === entry.created_at
+                  currentEntryId === entry.id
                     ? "focus-visible:bg-secondary group-hover/link:bg-secondary"
                     : "focus-visible:bg-background group-hover/link:bg-background"
                 )}
-                onClick={() => deleteEntry(entry.created_at)}
+                onClick={() => deleteEntry(entry.id)}
               >
                 <Trash className="size-5 opacity-0 transition-opacity group-hover/link:opacity-100 group-focus/button:opacity-100" />
                 <span className="sr-only">Delete entry</span>

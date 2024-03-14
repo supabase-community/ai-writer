@@ -1,24 +1,28 @@
 import React, { useCallback, useEffect, useRef } from "react"
 import { useCompletion } from "ai/react"
-import { useDebounce, useUpdateEffect } from "usehooks-ts"
+import { useDebounceValue } from "usehooks-ts"
 
 import { Textarea } from "./ui/textarea"
 
-interface EditorTextAreaProps {
-  body: string
+interface EditorBodyAreaProps {
+  body: string | undefined
   setCurrentEntryBody: (body: string) => void
 }
 
-export default function EditorTextArea({
+export default function EditorBodyArea({
   body,
   setCurrentEntryBody,
-}: EditorTextAreaProps) {
+}: EditorBodyAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const completionRef = useRef<HTMLDivElement>(null)
-  const debouncedBody = useDebounce(body, 1000)
   const { complete, setCompletion, completion, stop } = useCompletion({
     api: "/api/completion",
   })
+  const [debouncedBody, setDebouncedBody] = useDebounceValue("", 1000)
+
+  useEffect(() => {
+    body && setDebouncedBody(body)
+  }, [body, setDebouncedBody])
 
   // When the body changes, fetch a completion with 1 second debounce
   useEffect(() => {
@@ -28,7 +32,7 @@ export default function EditorTextArea({
   }, [debouncedBody, complete])
 
   // When the body changes instantly clear the completion and stop fetching
-  useUpdateEffect(() => {
+  useEffect(() => {
     stop()
     setCompletion("")
   }, [body])
@@ -38,7 +42,7 @@ export default function EditorTextArea({
     // If there is no space at the end of the body or the beginning of the completion, add one. Otherwise if the completion begins with punctuation don't add a space
     const newValue =
       body +
-      (body.endsWith(" ") ||
+      (body?.endsWith(" ") ||
       completion.startsWith(" ") ||
       completion.startsWith(".") ||
       completion.startsWith("?") ||
@@ -114,7 +118,7 @@ export default function EditorTextArea({
       >
         <span className="invisible whitespace-pre-wrap">{body}</span>
         <span className="whitespace-pre-wrap text-muted-foreground">
-          {(body.endsWith(" ") ||
+          {(body?.endsWith(" ") ||
           [" ", ".", "?", "!"].some((char) => completion.startsWith(char))
             ? ""
             : " ") + completion}

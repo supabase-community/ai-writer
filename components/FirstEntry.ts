@@ -1,7 +1,7 @@
 export const firstTitle =
   "Nature Bytes: A Tech Adventurer's Diary with Supabase and Friends"
 
-export const firstEntry = `Dear Journal,
+export const firstBody = `Dear Journal,
 
 Day 178 in the great outdoors. Here I am, nestled among the trees, with just my solar and Starlink-powered laptop and a sense of humor that refuses to quit. But the real star of today's wilderness diary? My journey in building a note-taking app with the help of Supabase.
 

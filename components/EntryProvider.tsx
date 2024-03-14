@@ -1,45 +1,69 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/supabase/client"
 import type { PostgrestError, Session } from "@supabase/supabase-js"
 import { useLocalStorage } from "usehooks-ts"
 
+import { backupEntries } from "@/lib/actions/backup-entries"
+import { generateEntry } from "@/lib/actions/create-entry"
 import { createUrlWithParams } from "@/lib/utils"
 
-import { firstEntry, firstTitle } from "./FirstEntry"
+import { firstBody, firstTitle } from "./FirstEntry"
 
 // Define the structure of an entry
 export interface Entry {
+  id: string
   created_at: string
   updated_at: string
   title: string
   body: string
 }
 
-// Define the type for the context state
+// Define the type for the entries context object
 interface EntryContextType {
   entries: Entry[]
-  currentEntry: Entry
+  setEntries: (entries: Entry[]) => void
+  currentEntry: Entry | undefined
+  currentEntryId: string | undefined
+  currentEntryTitle: string
+  currentEntryBody: string
+  setCurrentEntryId: (id: string) => void
   setCurrentEntryTitle: (title: string) => void
   setCurrentEntryBody: (body: string) => void
-  createEntry: () => void
+  createEntry: ({ firstEntry }: { firstEntry?: boolean | undefined }) => void
   deleteEntry: (created_at: string) => void
   synchronizing: boolean
-  error: PostgrestError | undefined
+  error: PostgrestError | { message: string } | undefined
+  setError: (error: PostgrestError | { message: string } | undefined) => void
   session: Session | null
+  setSession: (session: Session | null) => void
 }
 
-// Create a context
+// Create context
 const EntryContext = createContext<EntryContextType | undefined>(undefined)
 
 // Create a Provider component
 const EntryProvider = ({ children }: { children: React.ReactNode }) => {
-  const router = useRouter()
   const supabase = createClient()
+  const router = useRouter()
   const [session, setSession] = useState<Session | null>(null)
+  const [entries, setEntries] = useLocalStorage<Entry[]>("localEntries", [])
+  const [synchronizing, setSynchronizing] = useState(false)
+  const [error, setError] = useState<
+    PostgrestError | { message: string } | undefined
+  >()
+  const [previousBackup, setPreviousBackup] = useState<Entry>()
 
+  // Create a new entry if there are no entries
+  useEffect(() => {
+    if (!entries.length) {
+      createEntry({ firstEntry: true })
+    }
+  }, [])
+
+  //listen for auth state changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -55,252 +79,134 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe()
   }, [supabase.auth])
 
-  const searchParams = useSearchParams()
-  const paramEntryId = searchParams.get("entry")
-  const [localEntries, setLocalEntries] = useLocalStorage<Entry[]>(
-    "localEntries",
-    []
+  // Get entries from the server
+  useEffect(() => {
+    if (session) {
+      const fetchEntries = async () => {
+        const { data: entries, error } = await supabase
+          .from("entries")
+          .select("id, created_at, updated_at, title, body")
+        if (error) {
+          setError(error)
+          return
+        }
+        setEntries(entries as Entry[])
+      }
+      fetchEntries()
+    }
+  }, [])
+  const [currentEntryId, setCurrentEntryId] = useState<string | undefined>(
+    entries[0]?.id
   )
-  const [entries, setEntries] = useState<Entry[]>(localEntries)
-  const currentEntry = entries.find(
-    (entry) => entry.created_at === paramEntryId
-  ) || {
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    title: firstTitle,
-    body: firstEntry,
-  }
+  const currentEntry = entries.find((entry) => entry.id === currentEntryId)
+  const currentEntryTitle = currentEntry?.title ?? ""
+  const currentEntryBody = currentEntry?.body ?? ""
 
   const setCurrentEntryTitle = (title: string) => {
-    const updatedEntry = {
-      ...currentEntry,
-      title,
-      updated_at: new Date().toISOString(),
-      created_at: currentEntry.created_at || new Date().toISOString(),
-    }
-    setEntries(
-      entries.map((entry) =>
-        entry.created_at === updatedEntry.created_at ? updatedEntry : entry
-      )
+    //if (!currentEntry) return
+    const updatedEntries = entries.map((entry) =>
+      entry.id === currentEntry?.id
+        ? { ...entry, title, updated_at: new Date().toISOString() }
+        : entry
     )
+    setEntries(updatedEntries)
   }
+
   const setCurrentEntryBody = (body: string) => {
-    const updatedEntry = {
-      ...currentEntry,
-      body,
-      updated_at: new Date().toISOString(),
-      created_at: currentEntry.created_at || new Date().toISOString(),
-    }
-    setEntries(
-      entries.map((entry) =>
-        entry.created_at === updatedEntry.created_at ? updatedEntry : entry
-      )
+    //if (!currentEntry) return
+    const updatedEntries = entries.map((entry) =>
+      entry.id === currentEntry?.id
+        ? { ...entry, body, updated_at: new Date().toISOString() }
+        : entry
     )
+    setEntries(updatedEntries)
   }
 
-  const sortEntries = (entries: Entry[]) =>
-    entries.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-
-  /*   const createEntry = () => {
+  const createEntry = async ({ firstEntry = false }) => {
     const timestamp = new Date().toISOString()
-    const newParams = new URLSearchParams()
-    newParams.set("entry", timestamp)
-    // check that there is not already an entry with this timestamp
-    if (entries.some((entry) => entry.created_at === timestamp)) {
-      router.push(createUrlWithParams("/", newParams))
-      return
-    }
-    const newEntry: Entry = {
+    const { data, error } = await generateEntry({
+      id: "",
       created_at: timestamp,
       updated_at: timestamp,
-      title: "",
-      body: "",
-    }
-    const updatedEntryList = [...entries, newEntry]
-    setEntries(sortEntries(updatedEntryList))
-    router.push(createUrlWithParams("/", newParams))
-  } */
-
-  const createEntry = () => {
-    const timestamp = new Date().toISOString()
-    const newEntry: Entry = {
-      created_at: timestamp,
-      updated_at: timestamp,
-      title: firstTitle,
-      body: "",
-    }
-
-    setEntries((prevEntries) => sortEntries([...prevEntries, newEntry]))
-
-    // Push the new entry URL to the browser history
-    const newParams = new URLSearchParams()
-    newParams.set("entry", newEntry.created_at)
-    const newUrl = createUrlWithParams("/journal", newParams)
-    window.history.pushState(null, "", newUrl)
-  }
-
-  const deleteEntry = async (created_at: string) => {
-    const { error } = await supabase
-      .from("entries")
-      .delete()
-      .eq("created_at", created_at)
+      title: firstEntry ? firstTitle : "",
+      body: firstEntry ? firstBody : "",
+    })
     if (error) {
+      console.error(error)
       setError(error)
       return
     }
-    const updatedEntries = entries.filter(
-      (entry) => entry.created_at !== created_at
-    )
+    setEntries((prevEntries) => [data, ...prevEntries])
+
+    // Push the new entry URL to the browser history
+    const newParams = new URLSearchParams()
+    newParams.set("entry", data.id)
+    const newUrl = createUrlWithParams("/", newParams)
+    return router.push(newUrl)
+  }
+
+  const deleteEntry = async (id: string) => {
+    const { error } = await supabase.rpc("delete_entry", { entry_id: id })
+    if (error) {
+      console.error(error)
+      setError(error)
+      return
+    }
+    const updatedEntries = entries.filter((entry) => entry.id !== id)
+    setEntries(updatedEntries)
+    // If last entry was deleted, create a new generic one
     if (!updatedEntries.length) {
-      const timestamp = new Date().toISOString()
-      const newParams = new URLSearchParams()
-      newParams.set("entry", timestamp)
-      setEntries([
-        {
-          created_at: timestamp,
-          updated_at: timestamp,
-          title: firstTitle,
-          body: firstEntry,
-        },
-      ])
-      router.push(createUrlWithParams("/", newParams))
+      await createEntry({ firstEntry: true })
       return
     }
     const newParams = new URLSearchParams()
-    newParams.set("entry", updatedEntries[0].created_at)
-    router.push(createUrlWithParams("/", newParams))
-    setEntries(updatedEntries)
+    newParams.set("entry", updatedEntries[0]?.id ?? "")
+    const newUrl = createUrlWithParams("/", newParams)
+    window.history.pushState(null, "", newUrl)
   }
-  const [synchronizing, setSynchronizing] = useState(false)
-  const [error, setError] = useState<PostgrestError>()
 
-  // Fetch entries from Supabase and reconcile with local entries
+  // Backup entries every 5 seconds when there are changes
   useEffect(() => {
-    async function reconcileEntries() {
-      //const { data: supabaseEntries, error: entryFetchError  } = useQuery(getEntries(supabase))
-      const { data: supabaseEntries, error: entryFetchError } = await supabase
-        .from("entries")
-        .select("title, body, created_at, updated_at")
-      if (entryFetchError) {
-        setError(entryFetchError)
+    const interval = setInterval(async () => {
+      if (session && previousBackup !== currentEntry) {
+        console.log("Backing up entries")
+        console.log("updated_entries: ", entries)
+        setSynchronizing(true)
+        const { data, error } = await backupEntries(entries)
+        if (error) {
+          if (error.message === "User ID is NULL") {
+            setSession(null)
+          } else setError(error)
+        }
+        console.log("data", data)
+        setPreviousBackup(currentEntry)
+        setSynchronizing(false)
       }
-      // Fix supabaseEntries dates
-      supabaseEntries &&
-        supabaseEntries.forEach((entry) => {
-          entry.created_at = new Date(entry.created_at).toISOString()
-          entry.updated_at = new Date(entry.updated_at).toISOString()
-        })
-      // If neither local or Supabase entries exist create a starter entry
-      if (!localEntries.length && !supabaseEntries?.length) {
-        const timestamp = new Date().toISOString()
-        const newParams = new URLSearchParams()
-        newParams.set("entry", timestamp)
-        setEntries([
-          {
-            created_at: timestamp,
-            updated_at: timestamp,
-            title: firstTitle,
-            body: firstEntry,
-          },
-        ])
-        router.push(createUrlWithParams("/", newParams))
-        return
-      }
-      // If no local entries exist but Supabase entries do use the Supabase entries
-      if (!localEntries.length && supabaseEntries?.length)
-        setEntries(supabaseEntries)
-      // If local entries exist but Supabase entries do not use the local entries
-      else if (localEntries.length && !supabaseEntries?.length)
-        setEntries(localEntries)
-      // If both local and Supabase entries exist reconcile them
-      else if (localEntries.length && supabaseEntries?.length) {
-        const combinedEntries = localEntries.map((localEntry) => {
-          const supabaseEquivalent = supabaseEntries.find(
-            (supabaseEntry) =>
-              supabaseEntry.created_at === localEntry.created_at &&
-              supabaseEntry.updated_at > localEntry.updated_at
-          )
-          return supabaseEquivalent || localEntry
-        })
-        const supabaseUniqueEntries = supabaseEntries.filter(
-          (supabaseEntry) =>
-            !localEntries.some(
-              (localEntry) => localEntry.created_at === supabaseEntry.created_at
-            )
-        )
-        const reconciledEntries = sortEntries([
-          ...combinedEntries,
-          ...supabaseUniqueEntries,
-        ])
-        setEntries(reconciledEntries)
-      }
+    }, 5000)
 
-      // If paramEntryId is not in the entries list redirect to the first entry
-      if (
-        paramEntryId &&
-        !entries.some((entry) => entry.created_at === paramEntryId)
-      ) {
-        const newParams = new URLSearchParams()
-        newParams.set("entry", entries[0]?.created_at)
-        router.push(createUrlWithParams("/", newParams))
-      }
-
-      // If there is no paramEntryId redirect to the first entry
-      if (!paramEntryId) {
-        const newParams = new URLSearchParams()
-        newParams.set("entry", entries[0]?.created_at)
-        router.push(createUrlWithParams("/", newParams))
-      }
-    }
-    reconcileEntries()
-  }, [])
-
-  // Update session storage and Supabase when local entries change
-  useEffect(() => {
-    if (session?.user.role !== "authenticated") return
-    setSynchronizing(true)
-    setError(undefined)
-    setLocalEntries(entries)
-    const upsertEntries = async () => {
-      const { error } = await supabase
-        .from("entries")
-        .upsert(entries, { onConflict: "created_at" })
-      if (error) {
-        console.log(error)
-        setError(error)
-      }
-    }
-    upsertEntries()
-    setSynchronizing(false)
-  }, [entries, session, setLocalEntries, supabase])
-
-  // If the paramEntryId changes check that it is in the entries list, if not redirect to the first entry
-  useEffect(() => {
-    if (
-      paramEntryId &&
-      !entries.some((entry) => entry.created_at === paramEntryId)
-    ) {
-      const newParams = new URLSearchParams()
-      newParams.set("entry", entries[0]?.created_at)
-      router.push(createUrlWithParams("/", newParams))
-    }
-  }, [paramEntryId])
+    // Clean up the interval on component unmount
+    return () => clearInterval(interval)
+  }, [entries])
 
   return (
     <EntryContext.Provider
       value={{
         entries,
+        setEntries,
         currentEntry,
+        currentEntryId,
+        currentEntryTitle,
+        currentEntryBody,
+        setCurrentEntryId,
         setCurrentEntryTitle,
         setCurrentEntryBody,
         createEntry,
         deleteEntry,
         synchronizing,
         error,
+        setError,
         session,
+        setSession,
       }}
     >
       {children}
