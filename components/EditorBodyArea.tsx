@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react"
 import { useCompletion } from "ai/react"
-import { useDebounceValue, useWindowSize } from "usehooks-ts"
+import { useDebounceValue } from "usehooks-ts"
 
 import { Textarea } from "./ui/textarea"
 
@@ -19,7 +19,6 @@ export default function EditorBodyArea({
     api: "/api/completion",
   })
   const [debouncedBody, setDebouncedBody] = useDebounceValue("", 1000)
-  const { width = 0 } = useWindowSize()
 
   useEffect(() => {
     body && setDebouncedBody(body)
@@ -29,6 +28,10 @@ export default function EditorBodyArea({
   useEffect(() => {
     if (debouncedBody.length > 5) {
       complete(debouncedBody.slice(-200)) // Only send the last 200 characters
+    }
+    // Clean up any ongoing completion requests if the component is unmounted before completion
+    return () => {
+      stop()
     }
   }, [debouncedBody, complete])
 

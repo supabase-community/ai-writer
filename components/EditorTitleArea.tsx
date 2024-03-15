@@ -7,7 +7,7 @@ import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 
 interface EditorTitleAreaProps {
-  title: string 
+  title: string
   setTitle: (title: string) => void
   body: string | undefined
 }
@@ -16,22 +16,34 @@ export default function EditorTitleArea({
   setTitle,
   body,
 }: EditorTitleAreaProps) {
-  const { complete, completion, isLoading } = useCompletion({
+  const { complete, completion, isLoading, stop } = useCompletion({
     api: "/api/title-generation",
   })
   const [debouncedBody, setDebouncedBody] = useDebounceValue("", 5000)
 
+  // Update the debounced body when the body changes
   useEffect(() => {
     body && setDebouncedBody(body)
+    return () => {
+      setDebouncedBody("") // Clean up the debounced body
+    }
   }, [body, setDebouncedBody])
+
+  // If the body is long enough and the title is empty, autogenerate the title
+  useEffect(() => {
+    if (debouncedBody.length > 20 && title?.trim() === "") {
+      complete(debouncedBody)
+    }
+    return () => {
+      // Clean up any ongoing completion requests if the component is unmounted before completion
+      stop()
+    }
+  }, [debouncedBody, title, complete])
 
   // Function to handle input change and update the title value
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value
     setTitle(newTitle)
-    if (debouncedBody.length > 20 && title?.trim() === "") {
-      complete(debouncedBody)
-    }
   }
 
   // Function to generate a title suggestion
