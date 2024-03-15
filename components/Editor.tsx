@@ -22,7 +22,7 @@ export default function Editor() {
   if (!currentEntry) return <EditorSkeleton />
 
   return (
-    <div className="flex size-full max-w-4xl flex-col gap-y-4 animate-in">
+    <div className="flex size-full max-w-4xl flex-col gap-y-4 p-1 animate-in">
       <EditorTitleArea
         title={currentEntryTitle}
         setTitle={setCurrentEntryTitle}

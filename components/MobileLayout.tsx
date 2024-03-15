@@ -33,29 +33,27 @@ export default function MobileLayout({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <div className="flex size-full md:hidden">
-        <div className="flex size-full flex-col items-center justify-center p-6">
-          <nav className="flex w-full flex-row justify-between">
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="group">
-                <Menu className="size-5 -translate-x-3 transition-transform duration-300 group-hover:translate-x-0 group-focus:translate-x-0" />
-              </Button>
-            </SheetTrigger>
-            <Logo />
-            <SheetContent side="left">
-              <div className="mt-3 flex h-full max-h-full flex-col justify-between">
-                <Entries />
-                <div className="flex w-full items-center justify-between p-3 text-sm">
-                  <AuthButton />
-                  <ThemeToggle />
-                </div>
-                <Footer />
+      <div className="flex size-full flex-col items-center justify-center p-5 md:hidden">
+        <nav className="flex w-full flex-row justify-between p-1">
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="sm" className="group">
+              <Menu className="size-5 -translate-x-3 transition-transform duration-300 group-hover:translate-x-0 group-focus:translate-x-0" />
+            </Button>
+          </SheetTrigger>
+          <Logo />
+          <SheetContent side="left">
+            <div className="mt-3 flex h-full max-h-full flex-col justify-between">
+              <Entries />
+              <div className="flex w-full items-center justify-between p-3 text-sm">
+                <AuthButton />
+                <ThemeToggle />
               </div>
-            </SheetContent>
-          </nav>
-          <div className="relative mt-2 size-full items-center justify-center">
-            {children}
-          </div>
+              <Footer />
+            </div>
+          </SheetContent>
+        </nav>
+        <div className="relative mt-2 size-full items-center justify-center">
+          {children}
         </div>
       </div>
     </Sheet>

@@ -6,8 +6,8 @@ import { createClient } from "@/supabase/client"
 import type { PostgrestError, Session } from "@supabase/supabase-js"
 import { useLocalStorage } from "usehooks-ts"
 
-import { backupEntries } from "@/lib/actions/backup-entries"
-import { generateEntry } from "@/lib/actions/create-entry"
+import { backupEntry } from "@/lib/actions/backup-entry"
+import { generateEntry } from "@/lib/actions/generate-entry"
 import { createUrlWithParams } from "@/lib/utils"
 
 import { firstBody, firstTitle } from "./FirstEntry"
@@ -124,18 +124,13 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createEntry = async ({ firstEntry = false }) => {
     const timestamp = new Date().toISOString()
-    const { data, error } = await generateEntry({
+    const { data } = await generateEntry({
       id: "",
       created_at: timestamp,
       updated_at: timestamp,
       title: firstEntry ? firstTitle : "",
       body: firstEntry ? firstBody : "",
     })
-    if (error) {
-      console.error(error)
-      setError(error)
-      return
-    }
     setEntries((prevEntries) => [data, ...prevEntries])
 
     // Push the new entry URL to the browser history
@@ -146,12 +141,7 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const deleteEntry = async (id: string) => {
-    const { error } = await supabase.rpc("delete_entry", { entry_id: id })
-    if (error) {
-      console.error(error)
-      setError(error)
-      return
-    }
+    await supabase.from("entries").delete().eq("id", id)
     const updatedEntries = entries.filter((entry) => entry.id !== id)
     setEntries(updatedEntries)
     // If last entry was deleted, create a new generic one
@@ -168,17 +158,14 @@ const EntryProvider = ({ children }: { children: React.ReactNode }) => {
   // Backup entries every 5 seconds when there are changes
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (session && previousBackup !== currentEntry) {
-        console.log("Backing up entries")
-        console.log("updated_entries: ", entries)
+      if (session && currentEntry && previousBackup !== currentEntry) {
         setSynchronizing(true)
-        const { data, error } = await backupEntries(entries)
+        const { error } = await backupEntry(currentEntry)
         if (error) {
           if (error.message === "User ID is NULL") {
             setSession(null)
           } else setError(error)
         }
-        console.log("data", data)
         setPreviousBackup(currentEntry)
         setSynchronizing(false)
       }

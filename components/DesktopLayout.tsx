@@ -18,7 +18,7 @@ export default function DesktopLayout({
 
   return (
     <div className="hidden size-full md:flex">
-      <nav className="flex max-h-full w-1/3 min-w-40 max-w-sm flex-col items-center justify-center border-r border-border p-6">
+      <nav className="flex max-h-full w-1/3 min-w-40 max-w-sm flex-col items-center justify-center border-r border-border p-5">
         <Logo />
         <Entries />
         <div className="flex w-full max-w-4xl items-center justify-between p-3 text-sm">

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react"
 import { useCompletion } from "ai/react"
-import { useDebounceValue } from "usehooks-ts"
+import { useDebounceValue, useWindowSize } from "usehooks-ts"
 
 import { Textarea } from "./ui/textarea"
 
@@ -19,6 +19,7 @@ export default function EditorBodyArea({
     api: "/api/completion",
   })
   const [debouncedBody, setDebouncedBody] = useDebounceValue("", 1000)
+  const { width = 0 } = useWindowSize()
 
   useEffect(() => {
     body && setDebouncedBody(body)
@@ -31,7 +32,7 @@ export default function EditorBodyArea({
     }
   }, [debouncedBody, complete])
 
-  // When the body changes instantly clear the completion and stop fetching
+  // When the body changes clear the completion and stop fetching
   useEffect(() => {
     stop()
     setCompletion("")
@@ -55,9 +56,8 @@ export default function EditorBodyArea({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      //console.log(e.key)
-      if (e.key === "Tab") {
-        // Handle tab key
+      if ((e.key === "Tab" || e.key === "Enter") && completion.length) {
+        // Handle tab key and enter key
         e.preventDefault()
         appendSuggestion()
       }

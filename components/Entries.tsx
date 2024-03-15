@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Plus, Trash } from "lucide-react"
 
+import { backupEntry } from "@/lib/actions/backup-entry"
 import { cn, createUrlWithParams } from "@/lib/utils"
 import { useEntries } from "@/components/EntryProvider"
 
@@ -12,7 +13,8 @@ import { Button, buttonVariants } from "./ui/button"
 
 export default function Entries() {
   const pathname = usePathname()
-  const { entries, currentEntryId, createEntry, deleteEntry } = useEntries()
+  const { entries, currentEntry, currentEntryId, createEntry, deleteEntry } =
+    useEntries()
 
   if (pathname === "/reconcile") return <EntriesSkeleton />
 
@@ -20,12 +22,15 @@ export default function Entries() {
     <>
       <Button
         variant="outline"
-        className="my-3 w-full"
-        onClick={() => createEntry({})}
+        className="my-3 h-12 w-full p-0.5"
+        onClick={() => {
+          currentEntry && backupEntry(currentEntry)
+          createEntry({})
+        }}
       >
         <Plus className="size-5" />
       </Button>
-      <div className="size-full overflow-y-auto">
+      <div className="size-full overflow-y-auto p-0.5">
         {entries.map((entry, index) => {
           const newParams = new URLSearchParams()
           newParams.set("entry", entry.id)

@@ -1,6 +1,6 @@
 import { createClient } from "@/supabase/server"
 
-import { Reconciler } from "./reconciler"
+import { Reconciler } from "./Reconciler"
 
 export default async function ReconcilePage() {
   const supabase = createClient()
