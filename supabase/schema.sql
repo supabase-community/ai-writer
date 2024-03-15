@@ -62,7 +62,7 @@ BEGIN
     FOREACH entry IN ARRAY local_entries
     LOOP
         BEGIN
-            -- Attempt to update the row if it exists
+            -- Update the row if it exists
             UPDATE entries
             SET title = entry.title,
                 body = entry.body,

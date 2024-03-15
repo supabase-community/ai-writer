@@ -31,7 +31,9 @@ You can view a fully working demo at [ai-writer-ruddy.vercel.app](https://ai-wri
 
    Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://app.supabase.com/project/_/settings/api)
 
-5. You can now run the Next.js local development server:
+5. Copy supabase/schema.sql to your Supabase project's SQL editor and run the SQL setup Supabase.
+
+6. You can now run the Next.js local development server:
 
    ```bash
    pnpm turbo
