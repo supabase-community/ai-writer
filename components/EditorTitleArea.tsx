@@ -24,10 +24,7 @@ export default function EditorTitleArea({
   // Update the debounced body when the body changes
   useEffect(() => {
     body && setDebouncedBody(body)
-    return () => {
-      setDebouncedBody("") // Clean up the debounced body
-    }
-  }, [body, setDebouncedBody])
+  }, [body])
 
   // If the body is long enough and the title is empty, autogenerate the title
   useEffect(() => {
@@ -38,17 +35,12 @@ export default function EditorTitleArea({
       // Clean up any ongoing completion requests if the component is unmounted before completion
       stop()
     }
-  }, [debouncedBody, title, complete])
+  }, [debouncedBody])
 
   // Function to handle input change and update the title value
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value
     setTitle(newTitle)
-  }
-
-  // Function to generate a title suggestion
-  const generateTitle = () => {
-    complete(debouncedBody)
   }
 
   // Function to format the completion and update the title
@@ -63,9 +55,11 @@ export default function EditorTitleArea({
   }
 
   // Update the title when the completion changes
-  if (completion && completion !== title) {
-    updateTitle(completion)
-  }
+  useEffect(() => {
+    if (completion && completion !== title) {
+      updateTitle(completion)
+    }
+  }, [completion])
 
   return (
     <div className="group/input relative items-center justify-between">
@@ -84,7 +78,7 @@ export default function EditorTitleArea({
         variant="ghost"
         size="icon"
         className="group/button absolute right-0 size-9 group-focus-within/input:bg-background"
-        onClick={() => generateTitle()}
+        onClick={() => complete(debouncedBody)}
       >
         <Bot className="size-5 opacity-0 transition-opacity group-hover/input:opacity-100 group-focus/button:opacity-100" />
         <span className="sr-only">Generate title</span>
